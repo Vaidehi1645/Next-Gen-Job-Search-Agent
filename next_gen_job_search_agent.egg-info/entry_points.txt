@@ -1,0 +1,2 @@
+[console_scripts]
+job-search-agent = job_search_agent.cli:main

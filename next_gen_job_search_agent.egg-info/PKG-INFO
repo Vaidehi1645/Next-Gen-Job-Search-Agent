@@ -1,0 +1,38 @@
+Metadata-Version: 2.4
+Name: next-gen-job-search-agent
+Version: 0.1.0
+Summary: An autonomous, local-first job search agent with anti-spam sourcing, truth-checked matching, durable memory, and human-in-the-loop review.
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: chromadb>=0.5.5
+Requires-Dist: duckduckgo-search>=6.2.13
+Requires-Dist: langchain-core>=0.3.0
+Requires-Dist: langchain-ollama>=0.2.0
+Requires-Dist: langgraph>=0.2.35
+Requires-Dist: playwright>=1.46.0
+Requires-Dist: pydantic>=2.8.2
+Requires-Dist: requests>=2.32.3
+Requires-Dist: sentence-transformers>=3.0.1
+Requires-Dist: beautifulsoup4>=4.12.3
+
+# Next-Gen Job Search Agent
+
+A local-first autonomous job search system built around four restrictive agents:
+
+- Strict Sifter: anti-spam sourcing and direct-employer validation
+- Truth-Checked Matcher: factual resume-to-job alignment with explicit gap reporting
+- Persistent Memory Clerk: SQLite-backed state tracking
+- Adaptive Document Tailor: resume bullets and networking messages based only on existing resume facts
+
+## Setup
+
+1. Install dependencies: `pip install -e .`
+2. Put your master resume in `resume.txt` at the repo root.
+3. Start Ollama locally and pull a model such as `llama3.1` or `qwen2.5`.
+4. Run `python main.py review` to review top-scoring jobs from SQLite.
+
+## Notes
+
+- All reasoning goes through local Ollama by default.
+- ChromaDB is used to index the resume locally.
+- The review loop is intentionally human-in-the-loop and does not auto-apply.

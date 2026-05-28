@@ -1,0 +1,1 @@
+"""Next-Gen Job Search Agent package."""
