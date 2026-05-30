@@ -9,7 +9,11 @@ from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
+
+try:
+    from ddgs import DDGS
+except ImportError:  # pragma: no cover - fallback for older environments
+    from duckduckgo_search import DDGS
 
 from .config import SETTINGS
 from .llm import get_reasoning_llm
@@ -115,8 +119,10 @@ class StrictSifter:
                     body = result.get("body") or ""
                     if not url:
                         continue
+                    print(f"[StrictSifter] Raw hit: {title} | {url}")
                     if not self._looks_like_job_url(url, title, body):
-                        continue
+                        if not self._looks_like_job_posting(title, body):
+                            continue
                     validated = self._validate_job_link(url=url, title=title, snippet=body)
                     if validated is not None:
                         candidates.append(validated)
@@ -166,6 +172,27 @@ class StrictSifter:
             return True
         return False
 
+    @staticmethod
+    def _looks_like_job_posting(title: str, snippet: str) -> bool:
+        lower_title = (title or "").lower()
+        lower_snippet = (snippet or "").lower()
+        job_signals = (
+            "job",
+            "jobs",
+            "career",
+            "careers",
+            "hiring",
+            "opening",
+            "openings",
+            "role",
+            "position",
+            "apply",
+            "responsibilities",
+            "qualifications",
+        )
+        signal_count = sum(1 for signal in job_signals if signal in lower_title or signal in lower_snippet)
+        return signal_count >= 2
+
     def _fetch_page(self, url: str) -> dict[str, object] | None:
         try:
             headers = {
@@ -178,9 +205,9 @@ class StrictSifter:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             json_ld = self._extract_json_ld(soup)
-            company = json_ld.get("hiringOrganization") or json_ld.get("company") or self._extract_company(soup)
-            job_title = json_ld.get("title") or self._extract_title(soup)
-            job_description = json_ld.get("description") or self._extract_description(soup)
+            company = self._to_text(json_ld.get("hiringOrganization") or json_ld.get("company")) or self._extract_company(soup)
+            job_title = self._to_text(json_ld.get("title")) or self._extract_title(soup)
+            job_description = self._to_text(json_ld.get("description")) or self._extract_description(soup)
             published_at = self._extract_date(json_ld, soup)
             direct_employer = self._is_direct_employer(company, url, soup)
             return {
@@ -250,9 +277,9 @@ class StrictSifter:
 
     def _extract_date(self, json_ld: dict[str, object], soup: BeautifulSoup) -> str:
         if json_ld.get("datePosted"):
-            return str(json_ld["datePosted"])
+            return self._to_text(json_ld["datePosted"])
         if json_ld.get("datePublished"):
-            return str(json_ld["datePublished"])
+            return self._to_text(json_ld["datePublished"])
         for key in DATE_KEYS:
             meta = soup.find("meta", attrs={"property": key}) or soup.find("meta", attrs={"name": key})
             if meta and meta.get("content"):
@@ -260,7 +287,7 @@ class StrictSifter:
         return ""
 
     def _is_direct_employer(self, company: str, url: str, soup: BeautifulSoup) -> bool:
-        company_text = (company or "").lower()
+        company_text = self._to_text(company).lower()
         domain = urlparse(url).netloc.lower()
         if any(term in company_text for term in RECRUITER_TERMS):
             return False
@@ -275,9 +302,13 @@ class StrictSifter:
         if not direct_employer:
             return "Looks like a third-party recruiter or staffing intermediary."
         if not published_at:
+            if any(domain in url.lower() for domain in JOB_BOARD_DOMAINS) and len(job_description.strip()) >= 60:
+                return ""
             return "No verifiable posting timestamp found."
         published_dt = self._parse_datetime(published_at)
         if published_dt is None:
+            if any(domain in url.lower() for domain in JOB_BOARD_DOMAINS) and len(job_description.strip()) >= 60:
+                return ""
             return "Posting timestamp could not be parsed."
         age_days = (datetime.now(timezone.utc) - published_dt).days
         if age_days > SETTINGS.max_job_age_days:
@@ -309,6 +340,23 @@ class StrictSifter:
         if not parts:
             return "Unknown"
         return parts[0].capitalize()
+
+    @staticmethod
+    def _to_text(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, dict):
+            for key in ("name", "title", "text", "content", "value"):
+                nested = value.get(key)
+                if isinstance(nested, str) and nested.strip():
+                    return nested.strip()
+            return ""
+        if isinstance(value, list):
+            parts = [StrictSifter._to_text(item) for item in value]
+            return " ".join(part for part in parts if part).strip()
+        return str(value).strip()
 
     @staticmethod
     def _guess_job_title(snippet: str) -> str:
