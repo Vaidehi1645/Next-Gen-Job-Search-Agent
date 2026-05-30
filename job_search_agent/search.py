@@ -49,17 +49,46 @@ DATE_KEYS = (
     "og:updated_time",
 )
 
+JOB_URL_HINTS = (
+    "/jobs/",
+    "/careers/",
+    "/job/",
+    "/openings/",
+    "/positions/",
+    "/roles/",
+    "/vacancies/",
+)
+
+JOB_BOARD_DOMAINS = (
+    "greenhouse.io",
+    "lever.co",
+    "workday.com",
+    "icims.com",
+    "smartrecruiters.com",
+    "ashbyhq.com",
+)
+
 
 class StrictSifter:
     def __init__(self, llm=None) -> None:
         self.llm = llm or get_reasoning_llm()
 
     def build_search_queries(self, target_role: str, tech_stack: str) -> list[str]:
+        tech_terms = [term for term in re.split(r"[\s,/|]+", tech_stack.strip()) if term]
+        core_terms = tech_terms[:3] if tech_terms else []
+        core_query_terms = " ".join(core_terms) if core_terms else tech_stack.strip()
         prompts = [
-            f'{target_role} {tech_stack} site:jobs.lever.co OR site:boards.greenhouse.io OR site:workday.com',
-            f'{target_role} {tech_stack} "careers" -recruiter -staffing -consulting',
-            f'{target_role} {tech_stack} "apply" "job"',
+            f'site:boards.greenhouse.io "{target_role}" "{core_query_terms}"',
+            f'site:jobs.lever.co "{target_role}" "{core_query_terms}"',
+            f'site:workday.com "{target_role}" "{core_query_terms}"',
+            f'site:icims.com "{target_role}" "{core_query_terms}"',
+            f'site:smartrecruiters.com "{target_role}" "{core_query_terms}"',
+            f'site:ashbyhq.com "{target_role}" "{core_query_terms}"',
         ]
+        for term in core_terms:
+            prompts.append(f'site:boards.greenhouse.io "{target_role}" "{term}"')
+            prompts.append(f'site:jobs.lever.co "{target_role}" "{term}"')
+        prompts.append(f'"{target_role}" jobs careers')
         return prompts
 
     def search(self, target_role: str, tech_stack: str, max_results: int = 20) -> list[SearchCandidate]:
@@ -85,6 +114,8 @@ class StrictSifter:
                     title = result.get("title") or ""
                     body = result.get("body") or ""
                     if not url:
+                        continue
+                    if not self._looks_like_job_url(url, title, body):
                         continue
                     validated = self._validate_job_link(url=url, title=title, snippet=body)
                     if validated is not None:
@@ -118,6 +149,22 @@ class StrictSifter:
             source="duckduckgo",
             is_direct_employer=True,
         )
+
+    @staticmethod
+    def _looks_like_job_url(url: str, title: str, snippet: str) -> bool:
+        lower_url = url.lower()
+        lower_title = (title or "").lower()
+        lower_snippet = (snippet or "").lower()
+
+        if any(domain in lower_url for domain in JOB_BOARD_DOMAINS):
+            return True
+        if any(hint in lower_url for hint in JOB_URL_HINTS):
+            return True
+        if any(word in lower_title for word in ("jobs", "careers", "open role", "open position", "hiring")):
+            return True
+        if any(word in lower_snippet for word in ("job description", "apply now", "responsibilities", "qualifications")):
+            return True
+        return False
 
     def _fetch_page(self, url: str) -> dict[str, object] | None:
         try:

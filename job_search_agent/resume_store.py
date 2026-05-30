@@ -4,6 +4,8 @@ from dataclasses import asdict
 from pathlib import Path
 import re
 from typing import Iterable
+import io
+import warnings
 
 import chromadb
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
@@ -29,7 +31,51 @@ class ResumeVectorStore:
             raise FileNotFoundError(
                 f"Master resume not found at {self.resume_path}. Create resume.txt before running the workflow."
             )
-        return self.resume_path.read_text(encoding="utf-8")
+
+        suffix = self.resume_path.suffix.lower()
+        # Support plain text files
+        if suffix in {".txt", ""}:
+            return self.resume_path.read_text(encoding="utf-8")
+
+        # Support PDF files (text-based PDFs and scanned PDFs via OCR fallback)
+        if suffix == ".pdf":
+            try:
+                import pdfplumber
+
+                pages: list[str] = []
+                with pdfplumber.open(self.resume_path) as pdf:
+                    for p in pdf.pages:
+                        text = p.extract_text() or ""
+                        pages.append(text)
+                text = "\n\n".join(pages).strip()
+                if text:
+                    return text
+            except Exception as exc:  # pdfplumber not available or failed
+                warnings.warn(f"pdfplumber extraction failed: {exc}")
+
+            # OCR fallback for scanned PDFs
+            try:
+                from pdf2image import convert_from_path
+                import pytesseract
+
+                images = convert_from_path(str(self.resume_path))
+                ocr_pages = [pytesseract.image_to_string(img) for img in images]
+                text = "\n\n".join(ocr_pages).strip()
+                if text:
+                    return text
+            except Exception as exc:  # pdf2image / pytesseract not available or failed
+                warnings.warn(f"PDF OCR fallback failed: {exc}")
+
+            raise RuntimeError(
+                "Unable to extract text from PDF resume. Install 'pdfplumber' for text PDFs or "
+                "'pdf2image'+'pytesseract' plus Poppler/Tesseract for scanned PDFs."
+            )
+
+        # Unknown/unsupported formats fallback to text read
+        try:
+            return self.resume_path.read_text(encoding="utf-8")
+        except Exception:
+            raise RuntimeError(f"Unsupported resume file format: {self.resume_path}")
 
     @staticmethod
     def chunk_text(text: str, chunk_size: int = 1200, overlap: int = 180) -> list[str]:

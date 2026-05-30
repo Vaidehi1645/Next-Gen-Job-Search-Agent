@@ -1,0 +1,45 @@
+Vaidehi Hirani
+AI DEVELOPER | BACKEND DEVELOPER
++91 9429734532 | hiranivaidehi2004@gmail.com|linkedin.com/in/vaidehi-ketankumar-
+hirani|github.com/Vaidehi1645
+PROFESSIONAL SUMMARY
+Aspiring AI Developer with hands-on experience in building AI-driven applications and scalable backend
+systems using Python and modern web technologies.
+Developed AI solutions using LLMs (Whisper, NLP), Computer Vision (OpenCV), and OCR (Google Cloud
+Vision).
+Built and deployed RESTful APIs and backend systems for real-world, data-driven applications.
+Applied AI with IoT for real-time systems using sensor data processing and GPS-based alerting.
+TECHNICAL SKILLS
+Languages: Python, JavaScript, C++
+Web & Frameworks: Node.js, Express.js, React.js, RESTful APIs, LLM Integration
+Tools & Infrastructure: Git, GitHub, Postman, VS Code, Google Cloud APIs, IoT Integration
+Databases: MySQL, MongoDB
+PROFESSIONAL EXPERIENCE
+Software Developer Intern | Digikentro, Vadodara | Jan 2026 – May 2026
+Improved application reliability by debugging full-stack issues across Angular, .NET, and SQL layers.
+Streamlined backend workflows by analyzing API-to-database data flow and implementing robust error
+handling.
+Delivered stable, production-ready features with a focus on performance, logging, and system
+resilience.
+EDUCATION ACCOMPLISHMENTS & CERTIFICATIONS
+B.Tech in Computer Science & Engineering AWS Academy Graduate –Data Engineering
+(Specialization: Agentic AI) AWS Academy – Machine Learning
+Navrachana University, Vadodara
+Foundations
+2022 – 2026 | CGPA: 6.95/10
+PROJECTS
+AI Fitness & Wellness Coach (AI + Backend | Flask, Gemini)
+Built an AI-powered platform generating personalized workouts and chat-based coaching using Gemini
+LLM
+Developed backend APIs for logging meals, workouts, and wellness data with real-time AI feedback
+Tech: Python, Flask, Google Gemini, REST APIs, JSON
+SIAS – Smart Interview Automation System (AI + CV + NLP)
+Developed an automated interview system using AI-driven evaluation to streamline candidate
+screening.
+Integrated Whisper and NLTK for speech-to-text processing and structured insight extraction with
+OpenCV-based session control.
+Tech: Python, FastAPI, OpenCV, Whisper, NLTK, SQLite.
+AI Helmet for Accident Detection & Alert System (IoT + Backend)
+Built a real-time accident detection system using sensor fusion for impact analysis
+Implemented automated emergency alerts with live GPS tracking and backend data processing
+Tech: ESP32, Sensors, Firebase, Android Studio, Java, Kotlin
