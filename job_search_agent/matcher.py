@@ -42,6 +42,7 @@ class TruthCheckedMatcher:
     def __init__(self, llm=None, resume_store: ResumeVectorStore | None = None) -> None:
         self.llm = llm or get_reasoning_llm()
         self.resume_store = resume_store or ResumeVectorStore()
+        self._llm_enabled = True
 
     def match(self, resume_profile: ResumeProfile, job_title: str, company: str, job_description: str) -> MatchResult:
         print(f"[Matcher] Reviewing factual overlap for {job_title} at {company}")
@@ -180,6 +181,8 @@ class TruthCheckedMatcher:
         return int(max(1, min(100, round(base - penalty))))
 
     def _summarize_match(self, payload: dict[str, object]) -> dict[str, object]:
+        if not self._llm_enabled:
+            return {}
         messages = [
             SystemMessage(
                 content=(
@@ -200,6 +203,7 @@ class TruthCheckedMatcher:
                 return parsed
         except Exception as exc:
             print(f"[Matcher] Local LLM summary failed, falling back to deterministic result: {exc}")
+            self._llm_enabled = False
         return {}
 
     @staticmethod

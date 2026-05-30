@@ -15,6 +15,7 @@ from .models import MatchResult, ResumeProfile, TailoredPackage
 class AdaptiveDocumentTailor:
     def __init__(self, llm=None) -> None:
         self.llm = llm or get_reasoning_llm()
+        self._llm_enabled = True
 
     def generate(self, resume_profile: ResumeProfile, job_title: str, company: str, job_description: str, match_result: MatchResult) -> TailoredPackage:
         print(f"[Tailor] Generating materials for {job_title} at {company}")
@@ -65,6 +66,8 @@ class AdaptiveDocumentTailor:
         return target_dir
 
     def _generate_structured_content(self, payload: dict[str, object]) -> dict[str, object]:
+        if not self._llm_enabled:
+            return {}
         messages = [
             SystemMessage(
                 content=(
@@ -83,6 +86,7 @@ class AdaptiveDocumentTailor:
                 return parsed
         except Exception as exc:
             print(f"[Tailor] LLM generation failed, falling back to deterministic templates: {exc}")
+            self._llm_enabled = False
         return {}
 
     @staticmethod

@@ -202,7 +202,35 @@ class StrictSifter:
                 )
             }
             response = requests.get(url, headers=headers, timeout=20)
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as http_exc:
+                # Try a few pragmatic fallbacks for common job board URL patterns
+                print(f"[StrictSifter] Warning: {url} returned {response.status_code}, trying fallback fetches")
+                # Strip query params and retry
+                parsed = urlparse(url)
+                base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                if base != url:
+                    try:
+                        r2 = requests.get(base, headers=headers, timeout=15)
+                        r2.raise_for_status()
+                        response = r2
+                    except Exception:
+                        pass
+                # Try adding '/apply' if not present (common for lever/apply endpoints)
+                if not base.lower().endswith("/apply"):
+                    try_apply = base.rstrip("/") + "/apply"
+                    try:
+                        r3 = requests.get(try_apply, headers=headers, timeout=15)
+                        r3.raise_for_status()
+                        response = r3
+                    except Exception:
+                        pass
+                # If still failing re-raise the original exception to be caught below
+                try:
+                    response.raise_for_status()
+                except Exception:
+                    raise http_exc
             soup = BeautifulSoup(response.text, "html.parser")
             json_ld = self._extract_json_ld(soup)
             company = self._to_text(json_ld.get("hiringOrganization") or json_ld.get("company")) or self._extract_company(soup)

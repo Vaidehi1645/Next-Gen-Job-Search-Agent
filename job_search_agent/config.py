@@ -18,7 +18,8 @@ class Settings:
     use_tavily: bool = os.getenv("TAVILY_API_KEY", "").strip() != ""
     tavily_api_key: str = os.getenv("TAVILY_API_KEY", "")
     review_limit: int = int(os.getenv("REVIEW_LIMIT", "3"))
-    max_job_age_days: int = int(os.getenv("MAX_JOB_AGE_DAYS", "14"))
+    # Increase default window to 30 days to avoid discarding slightly older but still-valid postings
+    max_job_age_days: int = int(os.getenv("MAX_JOB_AGE_DAYS", "30"))
     allowed_recruiters: bool = os.getenv("ALLOW_RECRUITERS", "false").lower() in {"1", "true", "yes"}
     min_score_to_surface: int = int(os.getenv("MIN_SCORE_TO_SURFACE", "55"))
 
