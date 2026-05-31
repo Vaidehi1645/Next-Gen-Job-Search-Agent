@@ -15,8 +15,9 @@ from job_search_agent.database import (
 )
 from job_search_agent.matcher import TruthCheckedMatcher
 from job_search_agent.memory_clerk import PersistentMemoryClerk
-from job_search_agent.models import JobStatus, SearchCandidate
+from job_search_agent.models import JobStatus
 from job_search_agent.resume_store import prepare_resume_profile
+from job_search_agent.review_helpers import row_to_match_result
 from job_search_agent.search import StrictSifter
 from job_search_agent.tailor import AdaptiveDocumentTailor
 
@@ -126,28 +127,12 @@ def run_review_loop(top_n: int) -> None:
                     job_title=row["job_title"],
                     company=row["company"],
                     job_description=row["job_description"],
-                    match_result=_row_to_match_result(row, gaps),
+                    match_result=row_to_match_result(row),
                 )
                 out_dir = tailor.save(package, job_id=job_id, job_title=row["job_title"], company=row["company"])
                 print(f"[Review] Approved and generated tailored materials in: {out_dir}")
                 print("[Review] Mark APPLIED manually after you submit the application.")
                 break
-
-
-def _row_to_match_result(row, gaps: list[str]):
-    from job_search_agent.models import MatchResult
-
-    critical = [item for item in gaps if str(item).lower().startswith("critical hard skill gap")]
-    matched = []
-    return MatchResult(
-        score=int(row["match_score"]),
-        matched_requirements=matched,
-        detected_gaps=gaps,
-        critical_gaps=critical,
-        factual_evidence=[],
-        job_summary="",
-        raw_llm_output={},
-    )
 
 
 def main() -> None:

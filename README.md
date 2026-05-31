@@ -37,6 +37,17 @@ python convert_resume.py --in resume.pdf --out resume.txt
 
 After creating `resume.txt`, run discovery and review as described above.
 
+Web UI
+------
+
+You can also use a local dashboard to inspect jobs and approve/reject them without the terminal:
+
+```powershell
+streamlit run app.py
+```
+
+This dashboard reads from the same SQLite database and writes the same tailored output folders under `outputs/`.
+
 ## Notes
 
 - All reasoning goes through local Ollama by default.

@@ -8,3 +8,4 @@ pydantic>=2.8.2
 requests>=2.32.3
 sentence-transformers>=3.0.1
 beautifulsoup4>=4.12.3
+streamlit>=1.37.0

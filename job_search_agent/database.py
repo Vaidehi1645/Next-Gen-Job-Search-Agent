@@ -31,6 +31,25 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 CREATE INDEX IF NOT EXISTS idx_jobs_status_score ON jobs(status, match_score DESC, date_found DESC);
 CREATE INDEX IF NOT EXISTS idx_jobs_url ON jobs(url);
+
+CREATE TABLE IF NOT EXISTS profiles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL DEFAULT '',
+    resume_path TEXT NOT NULL DEFAULT '',
+    github TEXT NOT NULL DEFAULT '',
+    linkedin TEXT NOT NULL DEFAULT '',
+    twitter TEXT NOT NULL DEFAULT '',
+    other_links TEXT NOT NULL DEFAULT '[]',
+    years_experience INTEGER NOT NULL DEFAULT 0,
+    desired_role TEXT NOT NULL DEFAULT '',
+    desired_stack TEXT NOT NULL DEFAULT '',
+    locations TEXT NOT NULL DEFAULT '[]',
+    declaration_date TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON profiles(updated_at DESC);
 """
 
 
@@ -189,3 +208,72 @@ def record_match_result(job_id: int, score: int, detected_gaps: list[str], statu
 
 def serialize_job(row: sqlite3.Row) -> dict[str, object]:
     return {key: row[key] for key in row.keys()}
+
+
+def save_profile(
+    name: str | None = None,
+    resume_path: str | None = None,
+    github: str | None = None,
+    linkedin: str | None = None,
+    twitter: str | None = None,
+    other_links: list[str] | None = None,
+    years_experience: int | None = None,
+    desired_role: str | None = None,
+    desired_stack: str | None = None,
+    locations: list[str] | None = None,
+    declaration_date: str | None = None,
+    notes: str | None = None,
+    db_path: Path | None = None,
+) -> int:
+    initialize_database(db_path)
+    other_links = other_links or []
+    locations = locations or []
+    with connect(db_path) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO profiles (
+                name, resume_path, github, linkedin, twitter, other_links, years_experience,
+                desired_role, desired_stack, locations, declaration_date, notes, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                name or "",
+                resume_path or "",
+                github or "",
+                linkedin or "",
+                twitter or "",
+                json.dumps(other_links, ensure_ascii=True),
+                int(years_experience or 0),
+                desired_role or "",
+                desired_stack or "",
+                json.dumps(locations, ensure_ascii=True),
+                declaration_date or "",
+                notes or "",
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        row = connection.execute("SELECT id FROM profiles ORDER BY updated_at DESC LIMIT 1").fetchone()
+        return int(row["id"])
+
+
+def load_latest_profile(db_path: Path | None = None) -> dict[str, object] | None:
+    initialize_database(db_path)
+    with connect(db_path) as connection:
+        row = connection.execute("SELECT * FROM profiles ORDER BY updated_at DESC LIMIT 1").fetchone()
+        if not row:
+            return None
+        result = {key: row[key] for key in row.keys()}
+        # parse JSON fields
+        try:
+            import json as _json
+
+            result["other_links"] = _json.loads(result.get("other_links", "[]"))
+        except Exception:
+            result["other_links"] = []
+        try:
+            import json as _json
+
+            result["locations"] = _json.loads(result.get("locations", "[]"))
+        except Exception:
+            result["locations"] = []
+        return result
