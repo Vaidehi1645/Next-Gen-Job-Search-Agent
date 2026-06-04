@@ -53,3 +53,36 @@ This dashboard reads from the same SQLite database and writes the same tailored 
 - All reasoning goes through local Ollama by default.
 - ChromaDB is used to index the resume locally.
 - The review loop is intentionally human-in-the-loop and does not auto-apply.
+
+Developer Quickstart
+-------------------
+
+Create a virtual environment and install test tools (the project depends on heavier components handled separately):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
+pip install pytest
+```
+
+Run the lightweight unit tests:
+
+```bash
+pytest -q
+```
+
+Notes: Playwright, ChromaDB and some resume PDF tooling require additional system packages and are optional for running unit tests. See the repository top-level `pyproject.toml` for runtime dependencies.
+
+Repository cleanup
+------------------
+
+If large build artifacts or virtualenvs are present in the repo history, remove them from the index and commit the `.gitignore`:
+
+```bash
+git rm -r --cached .venv-1 chroma_store/chroma.sqlite3 job_tracker.db next_gen_job_search_agent.egg-info outputs resume.pdf || true
+git add .gitignore
+git commit -m "chore: add .gitignore and remove tracked artifacts"
+```
+
+Be careful: `git rm --cached` only untracks files in the index; to purge large files from history consider using `git filter-repo` or `git filter-branch` (advanced).
