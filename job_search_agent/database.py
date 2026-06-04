@@ -10,6 +10,7 @@ from typing import Iterator
 
 from .config import SETTINGS
 from .models import JobStatus, SearchCandidate
+from .logging_config import logger
 
 
 SCHEMA = """
@@ -269,11 +270,13 @@ def load_latest_profile(db_path: Path | None = None) -> dict[str, object] | None
 
             result["other_links"] = _json.loads(result.get("other_links", "[]"))
         except Exception:
+            logger.exception("Failed to parse other_links for latest profile")
             result["other_links"] = []
         try:
             import json as _json
 
             result["locations"] = _json.loads(result.get("locations", "[]"))
         except Exception:
+            logger.exception("Failed to parse locations for latest profile")
             result["locations"] = []
         return result

@@ -24,6 +24,7 @@ from job_search_agent.models import JobStatus
 from job_search_agent.resume_store import prepare_resume_profile
 from job_search_agent.review_helpers import approve_and_generate, mark_applied, reject_job
 from job_search_agent.search import StrictSifter
+from job_search_agent.logging_config import logger
 
 
 
@@ -37,6 +38,7 @@ def _validate_place(name: str) -> bool:
         data = resp.json()
         return bool(data)
     except Exception:
+        logger.exception("_validate_place failed for name=%s", name)
         return False
 
 
@@ -54,6 +56,7 @@ def _parse_gaps(raw_value: object) -> list[str]:
             if isinstance(parsed, list):
                 return [str(item) for item in parsed]
         except Exception:
+            logger.debug("_parse_gaps: could not parse gaps text: %s", text)
             return [text]
         return [text]
     return [str(raw_value)]
@@ -133,7 +136,8 @@ def main() -> None:
         try:
             declaration_date = st.date_input("Declaration date (when you became available)", value=date.fromisoformat(str(declaration_date_val)))
         except Exception:
-            declaration_date = st.date_input("Declaration date (when you became available)", value=date.today())
+                logger.debug("Failed to parse declaration_date_val=%s, falling back to today", declaration_date_val)
+                declaration_date = st.date_input("Declaration date (when you became available)", value=date.today())
         notes = st.text_area("Optional notes or preferences", value=str(stored.get("notes", "")))
 
     with right:

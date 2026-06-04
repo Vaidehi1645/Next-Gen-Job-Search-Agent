@@ -11,6 +11,7 @@ from .memory_clerk import PersistentMemoryClerk
 from .models import MatchResult, ResumeProfile, SearchCandidate
 from .search import StrictSifter
 from .resume_store import ResumeVectorStore, prepare_resume_profile
+from .logging_config import logger
 
 
 class WorkflowState(TypedDict, total=False):
@@ -58,9 +59,9 @@ class JobSearchWorkflow:
         resume_profile = resume_profile or prepare_resume_profile()
         job_id, inserted = self.memory.remember_found_job(candidate)
         if inserted:
-            print(f"[Workflow] Stored new job {candidate.company} | {candidate.job_title}")
+            logger.info("[Workflow] Stored new job %s | %s", candidate.company, candidate.job_title)
         else:
-            print(f"[Workflow] Job already existed in SQLite, reusing id={job_id}")
+            logger.info("[Workflow] Job already existed in SQLite, reusing id=%s", job_id)
         match_result = self.matcher.match(resume_profile, candidate.job_title, candidate.company, candidate.job_description)
         self.memory.mark_matched(job_id, match_result.score, match_result.detected_gaps)
         return job_id, match_result

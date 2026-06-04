@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .llm import get_reasoning_llm
 from .models import MatchResult, ResumeProfile
 from .resume_store import ResumeVectorStore
+from .logging_config import logger
 
 
 HARD_SKILL_PATTERNS = {
@@ -45,7 +46,7 @@ class TruthCheckedMatcher:
         self._llm_enabled = True
 
     def match(self, resume_profile: ResumeProfile, job_title: str, company: str, job_description: str) -> MatchResult:
-        print(f"[Matcher] Reviewing factual overlap for {job_title} at {company}")
+        logger.info("[Matcher] Reviewing factual overlap for %s at %s", job_title, company)
         relevant_resume_chunks = self.resume_store.query(job_description, top_k=5)
         extracted_requirements = self._extract_requirements(job_description)
         resume_text = resume_profile.raw_text.lower()
@@ -201,8 +202,8 @@ class TruthCheckedMatcher:
             parsed = json.loads(self._extract_json_block(content))
             if isinstance(parsed, dict):
                 return parsed
-        except Exception as exc:
-            print(f"[Matcher] Local LLM summary failed, falling back to deterministic result: {exc}")
+        except Exception:
+            logger.exception("[Matcher] Local LLM summary failed, falling back to deterministic result")
             self._llm_enabled = False
         return {}
 

@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .config import SETTINGS
 from .llm import get_reasoning_llm
 from .models import MatchResult, ResumeProfile, TailoredPackage
+from .logging_config import logger
 
 
 class AdaptiveDocumentTailor:
@@ -18,7 +19,7 @@ class AdaptiveDocumentTailor:
         self._llm_enabled = True
 
     def generate(self, resume_profile: ResumeProfile, job_title: str, company: str, job_description: str, match_result: MatchResult) -> TailoredPackage:
-        print(f"[Tailor] Generating materials for {job_title} at {company}")
+        logger.info("[Tailor] Generating materials for %s at %s", job_title, company)
         payload = {
             "job_title": job_title,
             "company": company,
@@ -84,8 +85,8 @@ class AdaptiveDocumentTailor:
             parsed = json.loads(self._extract_json_block(content))
             if isinstance(parsed, dict):
                 return parsed
-        except Exception as exc:
-            print(f"[Tailor] LLM generation failed, falling back to deterministic templates: {exc}")
+        except Exception:
+            logger.exception("[Tailor] LLM generation failed, falling back to deterministic templates")
             self._llm_enabled = False
         return {}
 

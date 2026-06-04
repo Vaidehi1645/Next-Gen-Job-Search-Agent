@@ -6,6 +6,7 @@ from .database import record_match_result
 from .memory_clerk import PersistentMemoryClerk
 from .models import MatchResult, JobStatus
 from .tailor import AdaptiveDocumentTailor
+from .logging_config import logger
 
 
 def row_to_match_result(row) -> MatchResult:
@@ -55,6 +56,8 @@ def _parse_json_list(raw_value: str) -> list[str]:
         parsed = json.loads(raw_value)
         if isinstance(parsed, list):
             return [str(item) for item in parsed]
+    except json.JSONDecodeError as exc:
+        logger.debug("_parse_json_list: JSON decode failed for value=%s: %s", raw_value, exc)
     except Exception:
-        pass
+        logger.exception("_parse_json_list: unexpected error parsing value: %s", raw_value)
     return [str(raw_value)]

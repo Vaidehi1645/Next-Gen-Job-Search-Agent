@@ -18,6 +18,18 @@ except ImportError:  # pragma: no cover - fallback for older environments
 from .config import SETTINGS
 from .llm import get_reasoning_llm
 from .models import SearchCandidate
+from .logging_config import logger
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+
+def _make_session() -> requests.Session:
+    session = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.5, status_forcelist=(429, 502, 503, 504))
+    adapter = HTTPAdapter(max_retries=retries)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
 
 
 RECRUITER_TERMS = (
@@ -96,7 +108,7 @@ class StrictSifter:
         return prompts
 
     def search(self, target_role: str, tech_stack: str, max_results: int = 20) -> list[SearchCandidate]:
-        print(f"[StrictSifter] Searching for direct-employer jobs for role='{target_role}' stack='{tech_stack}'")
+        logger.info("[StrictSifter] Searching for direct-employer jobs for role='%s' stack='%s'", target_role, tech_stack)
         results: list[SearchCandidate] = []
         seen_urls: set[str] = set()
         queries = self.build_search_queries(target_role, tech_stack)
@@ -119,7 +131,7 @@ class StrictSifter:
                     body = result.get("body") or ""
                     if not url:
                         continue
-                    print(f"[StrictSifter] Raw hit: {title} | {url}")
+                    logger.debug("[StrictSifter] Raw hit: %s | %s", title, url)
                     if not self._looks_like_job_url(url, title, body):
                         if not self._looks_like_job_posting(title, body):
                             continue
@@ -127,7 +139,7 @@ class StrictSifter:
                     if validated is not None:
                         candidates.append(validated)
         except Exception as exc:
-            print(f"[StrictSifter] DuckDuckGo search failed for query '{query}': {exc}")
+            logger.exception("[StrictSifter] DuckDuckGo search failed for query '%s'", query)
         return candidates
 
     def _validate_job_link(self, url: str, title: str, snippet: str) -> SearchCandidate | None:
@@ -142,10 +154,10 @@ class StrictSifter:
         direct_employer = page.get("direct_employer", True)
         rejection_reason = self._rejection_reason(company, url, job_description, published_at, direct_employer)
         if rejection_reason:
-            print(f"[StrictSifter] Rejected {url}: {rejection_reason}")
+            logger.info("[StrictSifter] Rejected %s: %s", url, rejection_reason)
             return None
         date_found = datetime.now(timezone.utc).isoformat()
-        print(f"[StrictSifter] Accepted direct employer link: {company} | {job_title}")
+        logger.info("[StrictSifter] Accepted direct employer link: %s | %s", company, job_title)
         return SearchCandidate(
             job_title=job_title.strip(),
             company=company.strip(),
@@ -201,31 +213,32 @@ class StrictSifter:
                     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
                 )
             }
-            response = requests.get(url, headers=headers, timeout=20)
+            session = _make_session()
+            response = session.get(url, headers=headers, timeout=20)
             try:
                 response.raise_for_status()
             except requests.exceptions.HTTPError as http_exc:
                 # Try a few pragmatic fallbacks for common job board URL patterns
-                print(f"[StrictSifter] Warning: {url} returned {response.status_code}, trying fallback fetches")
+                logger.warning("[StrictSifter] Warning: %s returned %s, trying fallback fetches", url, response.status_code)
                 # Strip query params and retry
                 parsed = urlparse(url)
                 base = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
                 if base != url:
                     try:
-                        r2 = requests.get(base, headers=headers, timeout=15)
+                        r2 = session.get(base, headers=headers, timeout=15)
                         r2.raise_for_status()
                         response = r2
                     except Exception:
-                        pass
+                        logger.debug("fallback to base URL failed for %s", base)
                 # Try adding '/apply' if not present (common for lever/apply endpoints)
                 if not base.lower().endswith("/apply"):
                     try_apply = base.rstrip("/") + "/apply"
                     try:
-                        r3 = requests.get(try_apply, headers=headers, timeout=15)
+                        r3 = session.get(try_apply, headers=headers, timeout=15)
                         r3.raise_for_status()
                         response = r3
                     except Exception:
-                        pass
+                        logger.debug("fallback to apply URL failed for %s", try_apply)
                 # If still failing re-raise the original exception to be caught below
                 try:
                     response.raise_for_status()
@@ -245,8 +258,8 @@ class StrictSifter:
                 "published_at": published_at,
                 "direct_employer": direct_employer,
             }
-        except Exception as exc:
-            print(f"[StrictSifter] Failed to inspect {url}: {exc}")
+        except Exception:
+            logger.exception("[StrictSifter] Failed to inspect %s", url)
             return None
 
     @staticmethod

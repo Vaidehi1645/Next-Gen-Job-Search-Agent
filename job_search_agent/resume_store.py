@@ -12,6 +12,7 @@ from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunct
 
 from .config import SETTINGS
 from .models import ResumeProfile
+from .logging_config import logger
 
 
 class ResumeVectorStore:
@@ -52,6 +53,7 @@ class ResumeVectorStore:
                     return text
             except Exception as exc:  # pdfplumber not available or failed
                 warnings.warn(f"pdfplumber extraction failed: {exc}")
+                logger.warning("pdfplumber extraction failed: %s", exc)
 
             # OCR fallback for scanned PDFs
             try:
@@ -65,6 +67,7 @@ class ResumeVectorStore:
                     return text
             except Exception as exc:  # pdf2image / pytesseract not available or failed
                 warnings.warn(f"PDF OCR fallback failed: {exc}")
+                logger.warning("PDF OCR fallback failed: %s", exc)
 
             raise RuntimeError(
                 "Unable to extract text from PDF resume. Install 'pdfplumber' for text PDFs or "
