@@ -1,0 +1,46 @@
+/.venv-1/
+/.azad/
+__pycache__/
+*.pyc
+.pytest_cache/
+chroma_store/*.sqlite3
+chroma_store/**/.DS_Store
+job_tracker.db
+next_gen_job_search_agent.egg-info/
+outputs/
+*.pdf
+*.sqlite3
+*.db
+/.mypy_cache/
+/.venv/
+venv/
+env/
+dist/
+build/
+*.egg-info/# Virtual environments
+.venv
+.venv-1
+venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# SQLite and other local DB files
+*.sqlite3
+*.db
+chroma_store/
+
+# Outputs and personal files
+outputs/
+*.pdf
+resume.*
+
+# Editor directories
+.vscode/
+/.azad/

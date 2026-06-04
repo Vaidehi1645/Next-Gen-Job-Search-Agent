@@ -1,5 +1,0 @@
-- Applied aws experience to deliver work aligned with the role's core requirements.
-- Applied fastapi experience to deliver work aligned with the role's core requirements.
-- Applied flask experience to deliver work aligned with the role's core requirements.
-- Applied git experience to deliver work aligned with the role's core requirements.
-- Applied javascript experience to deliver work aligned with the role's core requirements.
